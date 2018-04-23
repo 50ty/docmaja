@@ -3,17 +3,14 @@ package com.docmala.plugins.ouput;
 import com.docmala.parser.Block;
 import com.docmala.parser.Document;
 import com.docmala.parser.FormattedText;
-import com.docmala.parser.blocks.Content;
-import com.docmala.parser.blocks.Headline;
+import com.docmala.parser.blocks.*;
 import com.docmala.plugins.IOutput;
 import com.docmala.plugins.IOutputDocument;
 import com.lowagie.text.ChapterAutoNumber;
 import com.lowagie.text.DocumentException;
 import com.lowagie.text.Paragraph;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 
 public class Latex implements IOutput {
 
@@ -29,8 +26,27 @@ public class Latex implements IOutput {
             BufferedWriter writer = new BufferedWriter(new FileWriter(fileName+ ".tex"));
             writer.write(_buffer.toString());
             writer.close();
-            Process process = new ProcessBuilder("pdflatex", "-interaction=nonstopmode", "--enable-write18", fileName + ".tex").start();
+            // todo: Run process in a temp workdir
+            Process process = new ProcessBuilder("pdflatex", "-interaction=nonstopmode", "--enable-write18" , "--shell-escape", fileName + ".tex").start();
             process.waitFor();
+            BufferedReader err = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String readLine;
+            boolean abort = false;
+            while ((readLine = err.readLine()) != null)
+            {
+                System.out.println("ERROR: " + readLine);
+                abort = true;
+            }
+            if(abort){
+                throw new DocumentException("Latex Error");
+            }
+            while ((readLine = in.readLine()) != null)
+            {
+                System.out.println("INFO: " + readLine);
+            }
+
+            // Todo: check for Pygments to enable minted
         }
     }
     @Override
@@ -42,15 +58,19 @@ public class Latex implements IOutput {
         content.append("\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}" + System.lineSeparator());
         content.append("\\linespread{1.15}" + System.lineSeparator());
         content.append("\\usepackage{geometry}" + System.lineSeparator());
-        content.append("\\geometry{a4paper,left=25mm,right=25mm, top=35mm, bottom=35mm}" + System.lineSeparator());
+        content.append("\\geometry{a4paper,left=25mm,right=25mm, top=35mm, bottom=35mm,head=22.66618pt}" + System.lineSeparator());
         content.append("\\usepackage{helvet}" + System.lineSeparator());
         content.append("\\renewcommand{\\familydefault}{\\sfdefault}" + System.lineSeparator());
-        content.append("\\usepackage[automark]{scrpage2}" + System.lineSeparator());
+        content.append("\\usepackage[automark]{scrlayer-scrpage}" + System.lineSeparator());
         content.append("\\usepackage{lastpage}" + System.lineSeparator());
         content.append("\\pagestyle{scrheadings}" + System.lineSeparator());
         content.append("\\clearscrheadfoot{}" + System.lineSeparator());
-        content.append("\\ihead{" + "title" + "\\vspace{7px}}" + System.lineSeparator());
-        content.append("\\ofoot[]{&\\ &\\\\Page \\pagemark{} of \\pageref{LastPage}}" + System.lineSeparator());
+        if(document.metadata().containsKey("title")){
+            content.append("\\ihead{" + document.metadata().get("title").value.getFirst() + "\\vspace{7px}}" + System.lineSeparator());
+        } else {
+            content.append("\\ihead{" + "title not set" + "\\vspace{7px}}" + System.lineSeparator());
+        }
+        content.append("\\ofoot[]{Page \\pagemark{} of \\pageref{LastPage}}" + System.lineSeparator());
         content.append("\\setheadsepline[1.1\\textwidth]{1pt}" + System.lineSeparator());
         content.append("\\setfootsepline[1.1\\textwidth]{1pt}" + System.lineSeparator());
         content.append("\\usepackage[normalem]{ulem}" + System.lineSeparator());
@@ -62,15 +82,32 @@ public class Latex implements IOutput {
         content.append("\\usepackage{relsize}" + System.lineSeparator());
         content.append("\\usepackage{svg}" + System.lineSeparator());
         content.append("\\usepackage{graphicx}" + System.lineSeparator());
+        content.append("\\usepackage{minted}" + System.lineSeparator());
+        content.append("\\usemintedstyle{borland}" + System.lineSeparator());
         content.append("\\definecolor{bluekeywords}{HTML}{1A237E}" + System.lineSeparator());
         content.append("\\definecolor{greencomments}{HTML}{1B5E20}" + System.lineSeparator());
         content.append("\\definecolor{redstrings}{HTML}{B71C1C}" + System.lineSeparator());
         content.append("\\definecolor{backcolour}{rgb}{0.98,0.98,0.98}" + System.lineSeparator());
         content.append("\\setcounter{secnumdepth}{5}" + System.lineSeparator());
         content.append("\\setcounter{tocdepth}{" +"6" + "}" + System.lineSeparator());
-        content.append("\\title{" + "title" + "}" + System.lineSeparator());
-        content.append("\\author{"  + "author" + "}" + System.lineSeparator());
-        //content.append("\t\\usepackage{" << latexStyleDocument.substr(0, latexStyleDocument.find_last_of(".")) << "}" + System.lineSeparator());
+        if(document.metadata().containsKey("title")){
+            content.append("\\title{" + document.metadata().get("title").value.getFirst() + "}" + System.lineSeparator());
+        } else {
+            content.append("\\title{" + "title not set" + "}" + System.lineSeparator());
+        }
+        if(document.metadata().containsKey("authors")){
+            content.append("\\author{");
+            for (String author : document.metadata().get("authors").value) {
+                content.append(author + "      ");
+            }
+            content.append("}" + System.lineSeparator());
+        } else {
+            content.append("\\author{}" + System.lineSeparator());
+        }
+        if(document.metadata().containsKey("latex.style")){
+            content.append("\t\\usepackage{" + document.metadata().get("latex.style").value.getFirst() + "}" + System.lineSeparator());
+        }
+
         content.append("\\begin{document}" + System.lineSeparator());
         content.append("\\maketitle" + System.lineSeparator());
         content.append("\\tableofcontents" + System.lineSeparator());
@@ -108,14 +145,23 @@ public class Latex implements IOutput {
                 else if (headline.level == 6) {
                     content.append("$\\ $\\newline\\textbf{" + headlineText + "} $\\ $\\\\"+ System.lineSeparator());
                 }
-            }else if (block instanceof Content) {
+            } else if (block instanceof Content) {
                 String tempContent = "";
                 Content cocontent = (Content) block;
                 for (FormattedText text : cocontent.content()) {
                     tempContent += text.text;
                 }
                 content.append(tempContent + System.lineSeparator());
-
+            } else if (block instanceof List) {
+                // todo
+            } else if (block instanceof Image) {
+                // todo
+            } else if (block instanceof Code) {
+                content.append("\\begin{minted}[frame=lines, framesep=2mm, baselinestretch=1.2, linenos]{cpp}" + System.lineSeparator());
+                content.append(((Code)block).code.trim() + System.lineSeparator());
+                content.append("\\end{minted}" + System.lineSeparator());
+            } else if (block instanceof NextParagraph) {
+                content.append("\\newpage"+ System.lineSeparator());
             }
         }
 

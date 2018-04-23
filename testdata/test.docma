@@ -2,11 +2,9 @@
 ; ...
 ; ...
 
-<<<<<<< HEAD
+{title set Rommel123}
+{latex.style set testdata/batman}
 {authors append Adam, Michael}
-
-=======
->>>>>>> c6d137df52b2c515a4618e297ae7800ece93a23c
 
 = H1
 text1
@@ -99,6 +97,18 @@ test //italic// __**bold underline**__ ''mono'' --stroked--
 ----
 (a_1 / (b_1 + sqrt(c))^2) + sin(a_2 * b_2)
 ----
+
+Jetzt kommt Code:
+[code]
+----
+int main ()
+{
+    out = "test";
+}
+
+----
+Jetzt nicht mehr :)
+
 
 [include, file=included.docma]
 
