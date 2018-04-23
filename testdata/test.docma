@@ -2,8 +2,11 @@
 ; ...
 ; ...
 
+<<<<<<< HEAD
 {authors append Adam, Michael}
 
+=======
+>>>>>>> c6d137df52b2c515a4618e297ae7800ece93a23c
 
 = H1
 text1
