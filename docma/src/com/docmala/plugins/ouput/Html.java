@@ -62,6 +62,8 @@ public class Html {
             generateHeadline((Headline) block, document);
         } else if (block instanceof List) {
             generateList((List) block, document);
+        } else if (block instanceof Table) {
+            generateTable((Table) block, document);
         } else if (block instanceof Image) {
             generateImage((Image) block, document);
         } else if (block instanceof Content) {
@@ -222,6 +224,53 @@ public class Html {
         generateCaption(list.caption, document);
         _html.body().append("</figure>");
 
+    }
+
+    void generateTable(Table table, Document document) {
+        _html.body().append("<table border=\"1\">\n");
+        boolean firstRow = true;
+        for (Table.Cell[] row : table.cells()) {
+            boolean firstColumn = true;
+            _html.body().append("<tr>");
+            String end = "";
+
+            for (Table.Cell cell: row) {
+                if( cell == null ) {
+                    continue;
+                }
+                StringBuilder span = new StringBuilder();
+                if (cell.isHiddenBySpan) {
+                    continue;
+                }
+
+                if (cell.columnSpan > 1) {
+                    span.append(" colspan=\"").append(cell.columnSpan).append("\"");
+                }
+                if (cell.rowSpan > 1) {
+                    span.append(" rowspan=\"").append(cell.rowSpan).append("\"");
+                }
+                if (cell.isHeading && firstRow) {
+                    _html.body().append("<th scope=\"col\"").append(span).append(">\n");
+                    end = "</th>";
+                } else if (cell.isHeading && firstColumn) {
+                    _html.body().append("<th scope=\"row\"").append(span).append(">\n");
+                    end = "</th>";
+                } else {
+                    _html.body().append("<td").append(span).append(">\n");
+                    end = "</td>";
+                }
+
+                for( Block block: cell.content ) {
+                    generateBlock(block, document);
+                }
+                _html.body().append( end );
+
+                firstColumn = false;
+            }
+            _html.body().append("</tr>\n");
+            firstRow = false;
+        }
+        _html.body().append("</table>\n");
     }
 
     static public class HtmlDocument {

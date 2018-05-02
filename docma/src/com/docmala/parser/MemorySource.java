@@ -9,8 +9,14 @@ public class MemorySource implements ISource {
     private String _fileExtension = "";
     private String _fileLabel = "";
     private String _memory;
+    private int _lineOffset = 0;
 
     public MemorySource() {
+    }
+
+    public MemorySource(String fileName, String memory, int lineOffset) {
+        _lineOffset = lineOffset;
+        init(fileName, memory);
     }
 
     public MemorySource(String fileName, String memory) {
@@ -96,6 +102,7 @@ public class MemorySource implements ISource {
 
         MemoryPosition() {
             this._fileName = MemorySource.this._fileName;
+            _line += _lineOffset;
         }
 
         MemoryPosition(MemoryPosition other) {

@@ -29,6 +29,10 @@ public class PluginParser implements IBlockParser {
                 start.moveForward();
             }
 
+            if( level < 2 ) {
+                start.setTo(begin);
+                return false;
+            }
             while (!start.here().isBlockEnd()) {
                 start.moveForward();
             }
@@ -124,9 +128,8 @@ public class PluginParser implements IBlockParser {
 
             if (blockProcessing != IDocumentPlugin.BlockProcessing.No) {
                 if (!parseBlock(start)) {
-                    if (blockProcessing != IDocumentPlugin.BlockProcessing.Required) {
-                        errors.add(new Error(start.here(), "Plugin '" + pluginParameter.name() + "' requires a data block ('----')."));
-
+                    if (blockProcessing == IDocumentPlugin.BlockProcessing.Required) {
+                        errors.add(new Error(start.here(), "Plugin '" + pluginParameter.name() + "' requires a data block ('--')."));
                     }
                 }
             }

@@ -56,7 +56,7 @@ public class image implements IDocumentPlugin {
             errors.addLast(new Error(file.position(), "Unable to open file: '" + file.value() + "'."));
         }
 
-        image.setFileType(file.value().substring(0, file.value().lastIndexOf('.')));
+        image.setFileType(file.value().substring(file.value().lastIndexOf('.')+1));
         document.append(image.build());
     }
 

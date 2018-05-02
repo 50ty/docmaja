@@ -57,16 +57,4 @@ public class Headline extends Block {
             return new Headline(start, end, anchors, level, content);
         }
     }
-
-
-/*    @Override
-    public ISource.Window doParse(ISource.Window start, Document document) {
-
-        while (start.here().equals('=')) {
-            _level++;
-            start.moveForward();
-        }
-
-        return super.doParse(start, document);
-    }*/
 }

@@ -6,6 +6,20 @@
 {latex.style set testdata/batman}
 {authors append Adam, Michael}
 
+[csvtable, hasHeader, hasColumnHeader]
+----
+"1, 2, 3", 2, 3, 4
+a, b, c, d
+----
+
+[csvtable, separator=";"]
+----
+1; 2; 3; 4; 2
+a, b, c, d
+----
+
+[csvtable, file="test.csv"]
+
 = H1
 text1
 
@@ -70,6 +84,7 @@ text17
 text18
 
 = H1
+
 
 text is here
 text with << link >> link

@@ -5,6 +5,7 @@ import com.docmala.parser.ISourceProvider;
 import com.docmala.parser.MemorySource;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 public class RemoteSourceProvider implements ISourceProvider {
     final Requester requester;
@@ -46,7 +47,7 @@ public class RemoteSourceProvider implements ISourceProvider {
         }
 
         if (result.content != null) {
-            return result.content.getBytes();
+            return result.content.getBytes(Charset.forName("ISO-8859-1"));
         }
 
         return new byte[0];
