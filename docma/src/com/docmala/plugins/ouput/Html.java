@@ -100,6 +100,8 @@ public class Html {
     }
 
     private void generateImage(Image image, Document document) {
+        if(image.fileType == "latex") // ignore this type
+            return;
         _html.body().append("<figure>");
         _html.body().append("<img src=\"data:image/");
         _html.body().append(image.fileType);

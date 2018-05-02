@@ -20,16 +20,16 @@ public class Main {
 
         try {
             ISourceProvider sourceProvider = new LocalFileSourceProvider(Paths.get("/"));//testdata/"));
-            p.parse(sourceProvider, "/home/stefan/Desktop/projects/docmaja/testdata/test.docma");
+            p.parse(sourceProvider, "/home/stefan/Desktop/docmaja-fork/testdata/test.docma");
             Html htmlOutput = new Html();
             Html.HtmlDocument doc = htmlOutput.generate(p.document());
-            doc.write("/home/stefan/Desktop/projects/docmaja/testdata/test.html");
+            doc.write("/home/stefan/Desktop/docmaja-fork/testdata/test.html");
 
             //IOutput pdfOutput = new PDF();
             //pdfOutput.generate(p.document()).write("/home/stefan/Desktop/projects/docmaja/testdata/test.pdf");
 
             IOutput latexOutput = new Latex();
-            latexOutput.generate(p.document()).write("/home/stefan/Desktop/projects/docmaja/testdata/test");
+            latexOutput.generate(p.document()).write("/home/stefan/Desktop/docmaja-fork/testdata/test");
 
             for (Error error : p.errors()) {
                 System.out.printf("%s:(%d,%d):%s%n", error.position().fileName(), error.position().line(), error.position().column(), error.message());

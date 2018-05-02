@@ -11,6 +11,8 @@ import com.lowagie.text.DocumentException;
 import com.lowagie.text.Paragraph;
 
 import java.io.*;
+import java.util.ArrayDeque;
+import java.util.Base64;
 
 public class Latex implements IOutput {
 
@@ -47,11 +49,14 @@ public class Latex implements IOutput {
             }
 
             // Todo: check for Pygments to enable minted
+            // Install sudo pacman -S pygmentize
+            // Remove _minted_* folder after installation
         }
     }
     @Override
     public LatexDocument generate(Document document) {
         StringBuffer content = new StringBuffer();
+        long imageCounter = 0;
 
         content.append("\\documentclass[]{scrartcl}" + System.lineSeparator());
         content.append("% Package definitions:" + System.lineSeparator());
@@ -82,6 +87,8 @@ public class Latex implements IOutput {
         content.append("\\usepackage{relsize}" + System.lineSeparator());
         content.append("\\usepackage{svg}" + System.lineSeparator());
         content.append("\\usepackage{graphicx}" + System.lineSeparator());
+        content.append("\\usepackage{tikz}" + System.lineSeparator());
+        content.append("\\usepackage{aeguill}" + System.lineSeparator());
         content.append("\\usepackage{minted}" + System.lineSeparator());
         content.append("\\usemintedstyle{borland}" + System.lineSeparator());
         content.append("\\definecolor{bluekeywords}{HTML}{1A237E}" + System.lineSeparator());
@@ -119,8 +126,8 @@ public class Latex implements IOutput {
                 continue;
             }
             if (block instanceof Headline) {
-                String headlineText = "";
                 Headline headline = (Headline) block;
+                String headlineText = "";
                 if (headline.level <= 6) {
                     Content hlcontent = (Content) headline.content;
                     for (FormattedText text : hlcontent.content()) {
@@ -146,6 +153,7 @@ public class Latex implements IOutput {
                     content.append("$\\ $\\newline\\textbf{" + headlineText + "} $\\ $\\\\"+ System.lineSeparator());
                 }
             } else if (block instanceof Content) {
+                // todo print formatted
                 String tempContent = "";
                 Content cocontent = (Content) block;
                 for (FormattedText text : cocontent.content()) {
@@ -153,9 +161,62 @@ public class Latex implements IOutput {
                 }
                 content.append(tempContent + System.lineSeparator());
             } else if (block instanceof List) {
-                // todo
+                List list = (List) block;
+                if(list.caption != null && !list.caption.toString().isEmpty())
+                    content.append("$\\ $\\newline\\textbf{" + list.caption + "} $\\ $\\\\"+ System.lineSeparator());
+                generateListEntries(content, list.entries);
             } else if (block instanceof Image) {
-                // todo
+                Image image = (Image) block;
+
+                if(image.fileType == "svg+xml")
+                    continue; // Skip not supported file types
+
+                imageCounter++;
+
+                String fileName = String.valueOf(imageCounter) + "." + image.fileType;
+
+                FileOutputStream writer = null;
+                try {
+                    writer = new FileOutputStream(fileName);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    writer.write(image.data);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        writer.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                content.append("\\begin{figure}[htbp]" + System.lineSeparator());
+                content.append("\\centering" + System.lineSeparator());
+
+
+                if(image.fileType == "latex")
+                    content.append("\\input{" + fileName + "}" + System.lineSeparator());
+                else{
+                    content.append("\\includegraphics{" + fileName + "}" + System.lineSeparator());
+                }
+
+                if(image.caption != null){
+                    String capText = "";
+                    Caption caption = (Caption) image.caption;
+                    Content capContent = (Content) caption.content;
+                    for (FormattedText text : capContent.content()) {
+                        capText += text.text;
+                    }
+
+                    content.append("\\caption{" + capText  + "}" + System.lineSeparator());
+                }
+
+                content.append("\\end{figure}" + System.lineSeparator());
+
+
             } else if (block instanceof Code) {
                 content.append("\\begin{minted}[frame=lines, framesep=2mm, baselinestretch=1.2, linenos]{cpp}" + System.lineSeparator());
                 content.append(((Code)block).code.trim() + System.lineSeparator());
@@ -169,6 +230,39 @@ public class Latex implements IOutput {
         content.append("\\end{document}" + System.lineSeparator());
 
         return new LatexDocument(content);
+    }
+
+    static void generateListEntries(StringBuffer content, ArrayDeque<List> entries) {
+        if (entries.isEmpty())
+            return;
+
+        String listType = "itemize";
+
+        switch (entries.getFirst().type) {
+            case Points:
+                listType = "itemize";
+                break;
+            case Numbers:
+                listType = "enumerate";
+                break;
+        }
+
+        content.append("\\begin{" + listType + "}" + System.lineSeparator());
+
+        for (List entry : entries) {
+            Content listContent = (Content) entry.content;
+            if (listContent != null) {
+                content.append("\\item ");
+                for (FormattedText text : listContent.content()) {
+                    // todo format text
+                    content.append(text.text);
+                }
+                content.append(System.lineSeparator());
+            }
+            generateListEntries(content, entry.entries);
+        }
+
+        content.append("\\end{" + listType + "}" + System.lineSeparator());
     }
 
 
