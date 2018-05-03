@@ -87,6 +87,7 @@ public class Latex implements IOutput {
         content.append("\\usepackage{relsize}" + System.lineSeparator());
         content.append("\\usepackage{svg}" + System.lineSeparator());
         content.append("\\usepackage{graphicx}" + System.lineSeparator());
+        content.append("\\usepackage{caption}" + System.lineSeparator());
         content.append("\\usepackage{tikz}" + System.lineSeparator());
         content.append("\\usepackage{aeguill}" + System.lineSeparator());
         content.append("\\usepackage{minted}" + System.lineSeparator());
@@ -167,13 +168,14 @@ public class Latex implements IOutput {
                 generateListEntries(content, list.entries);
             } else if (block instanceof Image) {
                 Image image = (Image) block;
+                String fileType = image.fileType;
 
-                if(image.fileType == "svg+xml")
-                    continue; // Skip not supported file types
+                if(fileType== "svg+xml")
+                    fileType = "svg";
 
                 imageCounter++;
 
-                String fileName = String.valueOf(imageCounter) + "." + image.fileType;
+                String fileName = String.valueOf(imageCounter) + "." + fileType;
 
                 FileOutputStream writer = null;
                 try {
@@ -197,8 +199,8 @@ public class Latex implements IOutput {
                 content.append("\\centering" + System.lineSeparator());
 
 
-                if(image.fileType == "latex")
-                    content.append("\\input{" + fileName + "}" + System.lineSeparator());
+                if(fileType == "svg")
+                    content.append("\\includesvg[clean,pdf,pretex=\\relscale{0.9}]{" + fileName + "}" + System.lineSeparator());
                 else{
                     content.append("\\includegraphics{" + fileName + "}" + System.lineSeparator());
                 }
@@ -222,8 +224,11 @@ public class Latex implements IOutput {
                 content.append(((Code)block).code.trim() + System.lineSeparator());
                 content.append("\\end{minted}" + System.lineSeparator());
             } else if (block instanceof NextParagraph) {
-                content.append("\\newpage"+ System.lineSeparator());
+                content.append("$\\ $\\newline"+ System.lineSeparator());
+            } else if (block instanceof Table) {
+                generateTable(content, (Table) block);
             }
+
         }
 
 
@@ -265,8 +270,94 @@ public class Latex implements IOutput {
         content.append("\\end{" + listType + "}" + System.lineSeparator());
     }
 
+    void generateTable(StringBuffer content, Table table) {
+        String capText = "";
+        if(table.caption != null){
+            Caption caption = (Caption) table.caption;
+            Content capContent = (Content) caption.content;
+            for (FormattedText text : capContent.content()) {
+                capText += text.text;
+            }
+        }
 
+        content.append("\\begin{center}\\begin{tabular}{");
+        boolean firstRow = true;
+        for (Table.Cell[] row : table.cells()) {
+            for (Table.Cell cell: row) {
+                if (firstRow)
+                    content.append("l");
+            }
+            firstRow = false;
+        }
+        content.append("}" + System.lineSeparator());
+        int ignoreCauseHiddenByMultiCol = 0;
 
+        firstRow = true;
+        for (Table.Cell[] row : table.cells()) {
+            boolean firstColumn = true;
+            if (!firstRow) {
+                content.append("\\\\" + System.lineSeparator());
+            }
+
+            final String colSeperator = "&";
+
+            for (Table.Cell cell: row) {
+                if( cell == null ) {
+                    continue;
+                }
+
+                String end = "";
+
+                StringBuilder span = new StringBuilder();
+                if (cell.isHiddenBySpan) {
+                    if (ignoreCauseHiddenByMultiCol != 0) {
+                        ignoreCauseHiddenByMultiCol--;
+                    } else {
+                        content.append("&");
+                    }
+                }
+                if (!firstColumn) {
+                    content.append(colSeperator);
+                }
+                if (cell.columnSpan > 1) {
+                    content.append("\\multicolumn{" + String.valueOf(cell.columnSpan)
+                            + "}{l}{");
+                    ignoreCauseHiddenByMultiCol = cell.columnSpan;
+                    end += "}";
+                }
+
+                if (cell.rowSpan > 1) {
+                    content.append("\\multirow{" + String.valueOf(cell.rowSpan) + "}{*}{");
+                    end += "}";
+                }
+                if (cell.isHeading && firstRow) {
+                    content.append("\\textbf{");
+                    end = "}";
+                } else if (cell.isHeading && firstColumn) {
+                    content.append("\\textbf{");
+                    end = "}";
+                }
+
+                // todo print formatted
+                for( Block block: cell.content ) {
+                    String tempContent = "";
+                    Content cocontent = (Content) block;
+                    for (FormattedText text : cocontent.content()) {
+                        tempContent += text.text;
+                    }
+                    content.append(tempContent + System.lineSeparator());
+                }
+
+                content.append(end);
+
+                firstColumn = false;
+            }
+
+            firstRow = false;
+        }
+        content.append("\\\\" + System.lineSeparator());
+        content.append("\\end{tabular}\\captionof{table}{"+ capText +"}\\end{center}" + System.lineSeparator());
+    }
 
 
 

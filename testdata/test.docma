@@ -2,91 +2,101 @@
 ; ...
 ; ...
 
-{title set Rommel123}
+{title set DON'T PANIC}
 {latex.style set testdata/batman}
 {authors append Adam, Michael}
 
+= Tables
+
+[lorem]
+
+. Test
 [csvtable, hasHeader, hasColumnHeader]
 ----
 "1, 2, 3", 2, 3, 4
 a, b, c, d
 ----
 
+[lorem]
+
+. Test2
 [csvtable, separator=";"]
 ----
 1; 2; 3; 4; 2
 a, b, c, d
 ----
 
+. Test 3
 [csvtable, file="test.csv"]
 
-= H1
-text1
-
-== H2
-text2
-
-== H2
-text3
+[lorem]
 
 = H1
-text4
+[lorem]
 
 == H2
-text5
+[lorem]
+
+== H2
+[lorem]
+
+= H1
+[lorem]
+
+== H2
+[lorem]
 
 === H3
-text6
+[lorem]
 
 = H1
-text7
+[lorem]
 
 == H2
-text8
+[lorem]
 
 == H2
-text9
+[lorem]
 
 === H3
-text10
+[lorem]
 
 = H1
-text10.5
+[lorem]
 
 == H2
-text11
+[lorem]
 
 ==== H4
-text11.5
+[lorem]
 
 == H2
-text12
+[lorem]
 
 ====== H6
-text12.5
+[lorem]
 
 === H3
-text13
+[lorem]
 
 ==== H4
-text14
+[lorem]
 
 === H3
-text15
+[lorem]
 
 == H2
-text16
+[lorem]
 
 === H3
-text17
+[lorem]
 
 == H2
-text18
+[lorem]
 
 = H1
 
-
-text is here
+[lorem]
 text with << link >> link
 text with << link, blubb blubb blubb >> link and text
 
@@ -113,7 +123,7 @@ test //italic// __**bold underline**__ ''mono'' --stroked--
 (a_1 / (b_1 + sqrt(c))^2) + sin(a_2 * b_2)
 ----
 
-Jetzt kommt Code:
+[lorem]
 [code]
 ----
 int main ()
@@ -122,12 +132,12 @@ int main ()
 }
 
 ----
-Jetzt nicht mehr :)
+[lorem]
 
 
 [include, file=included.docma]
 
-textt
+[lorem]
 
 [plantuml]
 ----
@@ -143,6 +153,8 @@ Foo1 -> Foo4 : To entity
 Foo1 -> Foo5 : To database
 Foo1 -> Foo6 : To collections
 ----
+
+[lorem]
 
 . Noch ein test
 [plantuml]
@@ -189,3 +201,5 @@ A --> User: Done
 deactivate A
 
 ----
+
+[lorem]
