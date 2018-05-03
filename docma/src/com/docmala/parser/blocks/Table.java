@@ -2,11 +2,17 @@ package com.docmala.parser.blocks;
 
 import com.docmala.parser.Anchor;
 import com.docmala.parser.Block;
+import com.docmala.parser.ICaptionable;
 import com.docmala.parser.SourcePosition;
 
 import java.util.ArrayDeque;
 
-public class Table extends Block {
+public class Table extends Block implements ICaptionable {
+
+    @Override
+    public Block instanceWithCaption(Caption caption) {
+        return new Table(start, end, anchors, cells, new Caption(caption, "table"));
+    }
 
     public static class Cell {
         public final ArrayDeque<Block> content;
@@ -57,10 +63,12 @@ public class Table extends Block {
     }
 
     final Cell[][] cells;
+    public final Caption caption;
 
-    public Table(SourcePosition start, SourcePosition end, ArrayDeque<Anchor> anchors, Cell[][] cells) {
+    public Table(SourcePosition start, SourcePosition end, ArrayDeque<Anchor> anchors, Cell[][] cells, Caption caption) {
         super(start, end, anchors);
         this.cells = cells;
+        this.caption = caption;
     }
 
     public Cell[][] cells() {
@@ -72,6 +80,7 @@ public class Table extends Block {
         private SourcePosition end;
         private ArrayDeque<Anchor> anchors;
         private Cell[][] cells;
+        private Caption caption = null;
 
         public Builder setStart(SourcePosition start) {
             this.start = new SourcePosition(start);
@@ -93,8 +102,13 @@ public class Table extends Block {
             return this;
         }
 
+        public Builder setCaption(Caption caption) {
+            this.caption = caption;
+            return this;
+        }
+
         public Table build() {
-            return new Table(start, end, anchors, cells);
+            return new Table(start, end, anchors, cells, caption);
         }
 
     }
