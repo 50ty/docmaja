@@ -6,13 +6,10 @@ import com.docmala.parser.FormattedText;
 import com.docmala.parser.blocks.*;
 import com.docmala.plugins.IOutput;
 import com.docmala.plugins.IOutputDocument;
-import com.lowagie.text.ChapterAutoNumber;
 import com.lowagie.text.DocumentException;
-import com.lowagie.text.Paragraph;
 
 import java.io.*;
 import java.util.ArrayDeque;
-import java.util.Base64;
 
 public class Latex implements IOutput {
 
@@ -53,11 +50,91 @@ public class Latex implements IOutput {
             // Remove _minted_* folder after installation
         }
     }
+
+    private long imageCounter = 0;
+
     @Override
     public LatexDocument generate(Document document) {
         StringBuffer content = new StringBuffer();
-        long imageCounter = 0;
 
+        generateDocumentHeader(document, content);
+
+        for (Block block : document.content()) {
+            if (block == null)
+                continue;
+
+            if (block instanceof Headline) {
+                generateHeadline(content, (Headline) block);
+            } else if (block instanceof Content) {
+                generateContent(content, (Content) block);
+            } else if (block instanceof List) {
+                generateList(content, (List) block);
+            } else if (block instanceof Image) {
+                generateImage(content, (Image) block);
+            } else if (block instanceof Code) {
+                generateCode(content, (Code) block);
+            } else if (block instanceof NextParagraph) {
+                generateNextParagraph(content);
+            } else if (block instanceof Table) {
+                generateTable(content, (Table) block);
+            }
+        }
+
+        generateDocumentFooter(content);
+
+        return new LatexDocument(content);
+    }
+
+    private void generateContent(StringBuffer content, Content block) {
+        String tempContent = "";
+        Content cocontent = block;
+        for (FormattedText text : cocontent.content()) {
+            if(text instanceof FormattedText.Link)
+            {
+                FormattedText.Link link = (FormattedText.Link) text;
+                switch (link.type) {
+                    case Web:
+                        tempContent += "ZZZ";
+                        if(text.text.isEmpty())
+                            tempContent += "\\url{" + link.url + "} ";
+                        else
+                            tempContent += "\\href{" + link.url + "}{" + link.text + "} ";
+                        break;
+                    case IntraFile:
+                        tempContent += "XXX";
+                        break;
+                    case InterFile:
+                        tempContent += "YYY";
+                        break;
+                }
+            } else {
+                if (text.bold)
+                    tempContent += "\\textbf{";
+                if (text.italic)
+                    tempContent += "\\textit{";
+                if (text.monospaced)
+                    tempContent += "\\texttt{";
+                if (text.stroked)
+                    tempContent += "\\sout{";
+                if (text.underlined)
+                    tempContent += "\\underline{";
+                tempContent += text.text;
+                if (text.bold)
+                    tempContent += "} ";
+                if (text.italic)
+                    tempContent += "} ";
+                if (text.monospaced)
+                    tempContent += "} ";
+                if (text.stroked)
+                    tempContent += "} ";
+                if (text.underlined)
+                    tempContent += "} ";
+            }
+        }
+        content.append(tempContent + System.lineSeparator());
+    }
+
+    private void generateDocumentHeader(Document document, StringBuffer content) {
         content.append("\\documentclass[]{scrartcl}" + System.lineSeparator());
         content.append("% Package definitions:" + System.lineSeparator());
         content.append("\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}" + System.lineSeparator());
@@ -120,124 +197,112 @@ public class Latex implements IOutput {
         content.append("\\maketitle" + System.lineSeparator());
         content.append("\\tableofcontents" + System.lineSeparator());
         content.append("\\newpage" + System.lineSeparator());
-        //content.append(text.str() << "" + System.lineSeparator());
-
-        for (Block block : document.content()) {
-            if (block == null) {
-                continue;
-            }
-            if (block instanceof Headline) {
-                Headline headline = (Headline) block;
-                String headlineText = "";
-                if (headline.level <= 6) {
-                    Content hlcontent = (Content) headline.content;
-                    for (FormattedText text : hlcontent.content()) {
-                        headlineText += text.text;
-                    }
-                }
-                if (headline.level == 1) {
-                    content.append("\\section{" + headlineText + "}"+ System.lineSeparator());
-                }
-                else if (headline.level == 2) {
-                    content.append("\\subsection{" + headlineText + "}"+ System.lineSeparator());
-                }
-                else if (headline.level == 3) {
-                    content.append("\\subsubsection{" + headlineText + "}"+ System.lineSeparator());
-                }
-                else if (headline.level == 4) {
-                    content.append("\\paragraph{" + headlineText + "} $\\ $\\\\"+ System.lineSeparator());
-                }
-                else if (headline.level == 5) {
-                    content.append("\\subparagraph{" + headlineText + "} $\\ $\\\\"+ System.lineSeparator());
-                }
-                else if (headline.level == 6) {
-                    content.append("$\\ $\\newline\\textbf{" + headlineText + "} $\\ $\\\\"+ System.lineSeparator());
-                }
-            } else if (block instanceof Content) {
-                // todo print formatted
-                String tempContent = "";
-                Content cocontent = (Content) block;
-                for (FormattedText text : cocontent.content()) {
-                    tempContent += text.text;
-                }
-                content.append(tempContent + System.lineSeparator());
-            } else if (block instanceof List) {
-                List list = (List) block;
-                if(list.caption != null && !list.caption.toString().isEmpty())
-                    content.append("$\\ $\\newline\\textbf{" + list.caption + "} $\\ $\\\\"+ System.lineSeparator());
-                generateListEntries(content, list.entries);
-            } else if (block instanceof Image) {
-                Image image = (Image) block;
-                String fileType = image.fileType;
-
-                if(fileType== "svg+xml")
-                    fileType = "svg";
-
-                imageCounter++;
-
-                String fileName = String.valueOf(imageCounter) + "." + fileType;
-
-                FileOutputStream writer = null;
-                try {
-                    writer = new FileOutputStream(fileName);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    writer.write(image.data);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    try {
-                        writer.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                content.append("\\begin{figure}[htbp]" + System.lineSeparator());
-                content.append("\\centering" + System.lineSeparator());
-
-
-                if(fileType == "svg")
-                    content.append("\\includesvg[clean,pdf,pretex=\\relscale{0.9}]{" + fileName + "}" + System.lineSeparator());
-                else{
-                    content.append("\\includegraphics{" + fileName + "}" + System.lineSeparator());
-                }
-
-                if(image.caption != null){
-                    String capText = "";
-                    Caption caption = (Caption) image.caption;
-                    Content capContent = (Content) caption.content;
-                    for (FormattedText text : capContent.content()) {
-                        capText += text.text;
-                    }
-
-                    content.append("\\caption{" + capText  + "}" + System.lineSeparator());
-                }
-
-                content.append("\\end{figure}" + System.lineSeparator());
-
-
-            } else if (block instanceof Code) {
-                content.append("\\begin{minted}[frame=lines, framesep=2mm, baselinestretch=1.2, linenos]{cpp}" + System.lineSeparator());
-                content.append(((Code)block).code.trim() + System.lineSeparator());
-                content.append("\\end{minted}" + System.lineSeparator());
-            } else if (block instanceof NextParagraph) {
-                content.append("$\\ $\\newline"+ System.lineSeparator());
-            } else if (block instanceof Table) {
-                generateTable(content, (Table) block);
-            }
-
-        }
-
-
-        content.append("\\end{document}" + System.lineSeparator());
-
-        return new LatexDocument(content);
     }
 
-    static void generateListEntries(StringBuffer content, ArrayDeque<List> entries) {
+    private void generateDocumentFooter(StringBuffer content) {
+        content.append("\\end{document}" + System.lineSeparator());
+    }
+
+    private void generateNextParagraph(StringBuffer content) {
+        content.append("$\\ $\\newline"+ System.lineSeparator());
+    }
+
+    private void generateCode(StringBuffer content, Code block) {
+        content.append("\\begin{minted}[frame=lines, framesep=2mm, baselinestretch=1.2, linenos]{cpp}" + System.lineSeparator());
+        content.append(block.code.trim() + System.lineSeparator());
+        content.append("\\end{minted}" + System.lineSeparator());
+    }
+
+    private void generateImage(StringBuffer content, Image block) {
+        Image image = block;
+        String fileType = image.fileType;
+
+        if(fileType== "svg+xml")
+            fileType = "svg";
+
+        imageCounter++;
+
+        String fileName = String.valueOf(imageCounter) + "." + fileType;
+
+        FileOutputStream writer = null;
+        try {
+            writer = new FileOutputStream(fileName);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        try {
+            writer.write(image.data);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        content.append("\\begin{figure}[htbp]" + System.lineSeparator());
+        content.append("\\centering" + System.lineSeparator());
+
+
+        if(fileType == "svg")
+            content.append("\\includesvg[clean,pdf,pretex=\\relscale{0.9}]{" + fileName + "}" + System.lineSeparator());
+        else{
+            content.append("\\includegraphics{" + fileName + "}" + System.lineSeparator());
+        }
+
+        if(image.caption != null){
+            String capText = "";
+            Caption caption = (Caption) image.caption;
+            Content capContent = (Content) caption.content;
+            for (FormattedText text : capContent.content()) {
+                capText += text.text;
+            }
+
+            content.append("\\caption{" + capText  + "}" + System.lineSeparator());
+        }
+
+        content.append("\\end{figure}" + System.lineSeparator());
+    }
+
+    private void generateList(StringBuffer content, List block) {
+        List list = block;
+        if(list.caption != null && !list.caption.toString().isEmpty())
+            content.append("$\\ $\\newline\\textbf{" + list.caption + "} $\\ $\\\\"+ System.lineSeparator());
+        generateListEntries(content, list.entries);
+    }
+
+    private void generateHeadline(StringBuffer content, Headline block) {
+        Headline headline = block;
+        String headlineText = "";
+        if (headline.level <= 6) {
+            Content hlcontent = (Content) headline.content;
+            for (FormattedText text : hlcontent.content()) {
+                headlineText += text.text;
+            }
+        }
+        if (headline.level == 1) {
+            content.append("\\section{" + headlineText + "}"+ System.lineSeparator());
+        }
+        else if (headline.level == 2) {
+            content.append("\\subsection{" + headlineText + "}"+ System.lineSeparator());
+        }
+        else if (headline.level == 3) {
+            content.append("\\subsubsection{" + headlineText + "}"+ System.lineSeparator());
+        }
+        else if (headline.level == 4) {
+            content.append("\\paragraph{" + headlineText + "} $\\ $\\\\"+ System.lineSeparator());
+        }
+        else if (headline.level == 5) {
+            content.append("\\subparagraph{" + headlineText + "} $\\ $\\\\"+ System.lineSeparator());
+        }
+        else if (headline.level == 6) {
+            content.append("$\\ $\\newline\\textbf{" + headlineText + "} $\\ $\\\\"+ System.lineSeparator());
+        }
+    }
+
+    private void generateListEntries(StringBuffer content, ArrayDeque<List> entries) {
         if (entries.isEmpty())
             return;
 
@@ -270,7 +335,7 @@ public class Latex implements IOutput {
         content.append("\\end{" + listType + "}" + System.lineSeparator());
     }
 
-    void generateTable(StringBuffer content, Table table) {
+    private void generateTable(StringBuffer content, Table table) {
         String capText = "";
         if(table.caption != null){
             Caption caption = (Caption) table.caption;
@@ -338,14 +403,8 @@ public class Latex implements IOutput {
                     end = "}";
                 }
 
-                // todo print formatted
                 for( Block block: cell.content ) {
-                    String tempContent = "";
-                    Content cocontent = (Content) block;
-                    for (FormattedText text : cocontent.content()) {
-                        tempContent += text.text;
-                    }
-                    content.append(tempContent + System.lineSeparator());
+                    generateContent(content, (Content) block);
                 }
 
                 content.append(end);
@@ -358,7 +417,4 @@ public class Latex implements IOutput {
         content.append("\\\\" + System.lineSeparator());
         content.append("\\end{tabular}\\captionof{table}{"+ capText +"}\\end{center}" + System.lineSeparator());
     }
-
-
-
 }

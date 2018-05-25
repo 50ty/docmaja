@@ -97,12 +97,21 @@ a, b, c, d
 = H1
 
 [lorem]
+
+
 text with << link >> link
+
 text with << link, blubb blubb blubb >> link and text
 
 == H2
+
 text with [[anchor]] anchor
+
 test //italic// __**bold underline**__ ''mono'' --stroked--
+
+<<http://google.de>>
+
+<<http://google.de, test123>>
 
 * t0
 * This text ...
