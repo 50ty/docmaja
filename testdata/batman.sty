@@ -1,0 +1,33 @@
+\ProvidesPackage{LatexStyle}[2017/03/15 v.01 an
+example package]
+\RequirePackage{graphicx}
+\newcommand*{\project}[1]{\gdef\@project{#1}%
+}
+\newcommand*{\@project}{DOCMALA}
+\newcommand*{\supervisor}[1]{\gdef\@supervisor{#1}%
+}
+\newcommand*{\@supervisor}{50ty-one}
+\renewcommand*{\maketitle}{%
+\begin{titlepage}
+{\raggedleft%
+	\includegraphics[width=3cm]{/home/stefan/projects/github/docmaja/testdata/logo.png}\par
+}\vspace{1cm}
+	\centering
+{\scshape\LARGE ABCDEFGHIJKLMNOPQRSTUVWXYZ123 \par}
+\vspace{1cm}
+{\scshape\Large\@project\unskip\strut\par}
+\vspace{1.5cm}
+{\huge\bfseries\@title\unskip\strut\par}
+\vspace{2cm}
+{\Large\itshape\@author\unskip\strut\par}
+\vfill
+supervised by\par
+\@supervisor\unskip\strut\par
+
+\vfill
+
+{\large \@date\par}
+\end{titlepage}
+}
+\endinput
+ 
